@@ -11,6 +11,25 @@ Projeto no Linear: **gerador-acelera** (time Acelera) → https://linear.app/lua
 - **`uv.lock` corrigido** — estava desatualizado por causa do rename do projeto para `geradordevideos-acelera`; agora `uv sync` roda limpo.
 - **WebUI validada**: subiu e respondeu `HTTP 200` (`/_stcore/health = ok`), com todos os módulos de `app/services` importando corretamente.
 - **Interface 100% em Português (BR)**: completei o `webui/i18n/pt.json` (faltavam 24 dos 168 textos, que apareciam em inglês) e defini `language = "pt"` no `config.toml` como idioma padrão. Dá pra trocar no seletor "Language / 语言" no topo da UI.
+- **Geração padrão em Português (BR)**: roteiro, narração e legenda já saem em PT por padrão.
+
+## 🇧🇷 Geração em Português (BR) — o que foi configurado
+
+| Item | Valor padrão | Onde |
+|---|---|---|
+| Idioma do roteiro (IA) | `pt-BR` | `config.toml` → `[ui] script_language` + opção adicionada no `webui/Main.py` |
+| Voz (TTS) | `pt-BR-AntonioNeural-Male` (voz brasileira, grátis via edge-tts) | `config.toml` → `[ui] voice_name` |
+| Fonte da legenda | `BeVietnamPro-Bold.ttf` (suporta acentos: ã, ç, é, õ) | `config.toml` → `[ui] font_name` |
+| Legenda | gerada a partir do roteiro/áudio em PT | automático |
+
+**Por que o vídeo saiu em inglês antes:** o "Script Language" estava em *Auto Detect* e o projeto **nem listava português** — então temas em inglês (ex.: "Minecraft") geravam roteiro em inglês, e a voz lia aquilo. Agora o roteiro é forçado para PT-BR.
+
+**Trocar a voz** (3 opções brasileiras): no seletor "Speech Synthesis" da UI, ou em `config.toml`:
+- `pt-BR-AntonioNeural-Male` (masculina) ← atual
+- `pt-BR-FranciscaNeural-Female` (feminina)
+- `pt-BR-ThalitaMultilingualNeural-Female` (feminina, multilíngue)
+
+> ⚠️ Pra valer, **reinicie a WebUI** (`Ctrl+C` e `sh webui.sh` de novo) e gere um vídeo novo.
 
 > ⚠️ Sobrou uma pasta `.venv` quebrada (~928 MB) que eu não consegui apagar daqui (limitação de permissão). **No seu Mac, apague antes de rodar** (passo 2 abaixo). Ela está no `.gitignore`, então não vai pro Git.
 

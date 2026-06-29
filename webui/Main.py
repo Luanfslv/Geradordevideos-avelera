@@ -174,11 +174,12 @@ with lang_col:
         config.ui["language"] = code
 
 support_locales = [
+    "pt-BR",
+    "en-US",
     "zh-CN",
     "zh-HK",
     "zh-TW",
     "de-DE",
-    "en-US",
     "fr-FR",
     "ru-RU",
     "vi-VN",
@@ -800,9 +801,20 @@ with left_panel:
         for code in support_locales:
             video_languages.append((code, code))
 
+        # Idioma padrão do roteiro vem do config.toml ([ui] script_language).
+        # Padrão "pt-BR" para a Acelera; "" = Auto Detect (comportamento original).
+        default_script_language = config.ui.get("script_language", "pt-BR")
+        default_script_index = next(
+            (
+                i
+                for i, (_, code) in enumerate(video_languages)
+                if code == default_script_language
+            ),
+            0,
+        )
         selected_index = st.selectbox(
             tr("Script Language"),
-            index=0,
+            index=default_script_index,
             options=range(
                 len(video_languages)
             ),  # Use the index as the internal option value
