@@ -86,7 +86,24 @@ export interface CreateVideoParams {
   strokeColor: string;
   strokeWidth: number;
   subtitleBg: boolean;
+  materials?: string[];      // arquivos locais (quando source = local)
   language?: string;
+}
+
+/** Envia um vídeo/imagem local para o backend. Retorna o nome do arquivo salvo. */
+export async function uploadMaterial(file: File): Promise<string> {
+  const token = await getAccessToken();
+  const fd = new FormData();
+  fd.append("file", file);
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/video_materials`, { method: "POST", body: fd, headers });
+  let json: { status?: number; data?: { file?: string }; message?: string; file?: string } = {};
+  try { json = await res.json(); } catch { /* sem corpo */ }
+  if (!res.ok || (typeof json.status === "number" && json.status >= 400)) {
+    throw new Error(json.message || `Erro ${res.status}`);
+  }
+  return (json.data?.file ?? json.file ?? file.name) as string;
 }
 
 export async function createVideo(p: CreateVideoParams): Promise<string> {
@@ -97,6 +114,10 @@ export async function createVideo(p: CreateVideoParams): Promise<string> {
       video_script: p.script,
       video_terms: p.terms.join(", "),
       video_source: p.source,
+      video_materials:
+        p.source === "local" && p.materials?.length
+          ? p.materials.map((url) => ({ provider: "local", url, duration: 0 }))
+          : undefined,
       video_aspect: p.aspect,
       video_concat_mode: p.concatMode,
       video_transition_mode: p.transition || null,

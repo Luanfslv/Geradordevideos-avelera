@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties } from "react";
 import {
   Page, PageHeader, Panel, SectionHeader, Segmented, Select, Slider, ColorRow, Toggle, Label, Chip, Expander,
 } from "../components/ui";
 import PhonePreview from "../components/PhonePreview";
-import { generateScript, generateTerms, createVideo, pollTask, progressLabel } from "../lib/api";
+import { generateScript, generateTerms, createVideo, pollTask, progressLabel, uploadMaterial } from "../lib/api";
 import type { Aspect } from "../types";
 
 const VOICES = [
@@ -35,6 +35,8 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
   const [paragraphs, setParagraphs] = useState("1");
   // vídeo
   const [source, setSource] = useState("pexels");
+  const [materials, setMaterials] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [aspect, setAspect] = useState<Aspect>("9:16");
   const [concatMode, setConcatMode] = useState("random");
   const [transition, setTransition] = useState("");
@@ -65,7 +67,23 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
 
   useEffect(() => () => cancelRef.current?.(), []);
 
-  const localBlocked = source === "local";
+  const localNeedsUpload = source === "local" && materials.length === 0;
+
+  async function onUpload(e: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (!files.length) return;
+    setError(""); setUploading(true);
+    try {
+      const names: string[] = [];
+      for (const f of files) names.push(await uploadMaterial(f));
+      setMaterials((m) => [...m, ...names]);
+    } catch (err) {
+      setError(msg(err, "Falha no upload do vídeo."));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function genScript() {
     if (!topic.trim() || scriptLoading) return;
@@ -84,7 +102,7 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
 
   async function generate() {
     if (generating) return;
-    if (localBlocked) { setError("Fonte 'Local' exige upload de materiais (ainda não disponível). Use Pexels ou Pixabay."); return; }
+    if (localNeedsUpload) { setError("Envie ao menos um vídeo local antes de gerar."); return; }
     if (!script.trim()) { setError("Gere ou escreva um roteiro antes."); return; }
     setError(""); setGenerating(true); setProgress(0); setGenName(progressLabel(0));
     try {
@@ -92,7 +110,7 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
         subject: topic.trim() || "Vídeo Acelera",
         script: script.trim(),
         terms: keywords,
-        source, aspect, concatMode, transition,
+        source, materials, aspect, concatMode, transition,
         clipDuration, videoCount: Number(videoCount),
         voiceName, voiceVolume, voiceRate, bgmType, bgmVolume,
         subtitlesOn, fontName, subtitlePosition, textColor, fontSize, strokeColor, strokeWidth, subtitleBg,
@@ -168,7 +186,21 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
               <Label>Fonte dos clipes</Label>
               <Segmented value={source} onChange={setSource}
                 options={[{ id: "pexels", label: "Pexels" }, { id: "pixabay", label: "Pixabay" }, { id: "local", label: "Local" }]} />
-              {localBlocked && <span style={{ fontSize: 11.5, color: "var(--status-warning)" }}>⚠ Local exige upload de materiais (em breve). Use Pexels/Pixabay.</span>}
+              {source === "local" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 2 }}>
+                  <label style={{ ...uploadBtn, opacity: uploading ? 0.6 : 1 }}>
+                    {uploading ? "Enviando…" : "↑ Enviar vídeo(s) local"}
+                    <input type="file" accept="video/*,image/*" multiple style={{ display: "none" }} onChange={onUpload} disabled={uploading} />
+                  </label>
+                  {materials.map((f, i) => (
+                    <div key={i} style={matRow}>
+                      <span style={matName}>{f}</span>
+                      <button style={matDel} title="Remover" onClick={() => setMaterials(materials.filter((_, j) => j !== i))}>✕</button>
+                    </div>
+                  ))}
+                  {materials.length === 0 && <span style={{ fontSize: 11.5, color: "var(--text-muted-2)" }}>Envie ao menos um arquivo (mp4, mov, png…) pra usar a fonte Local.</span>}
+                </div>
+              )}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <Label>Proporção</Label>
@@ -223,7 +255,7 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
               </div>
             ) : (
               <>
-                <button style={{ ...generateBtn, opacity: script.trim() && !localBlocked ? 1 : 0.6 }} onClick={generate}>Gerar vídeo</button>
+                <button style={{ ...generateBtn, opacity: script.trim() && !localNeedsUpload ? 1 : 0.6 }} onClick={generate}>Gerar vídeo</button>
                 <span style={{ textAlign: "center", fontSize: 12, color: "var(--text-muted-2)" }}>narração grátis (edge-tts) · pt-BR</span>
               </>
             )}
@@ -248,3 +280,7 @@ const generateBtn: CSSProperties = { height: 54, borderRadius: 13, border: "none
 const progressCard: CSSProperties = { display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 12, background: "var(--surface-input)", border: "1px solid var(--accent-border)" };
 const progBarTrack: CSSProperties = { height: 8, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" };
 const progBarFill: CSSProperties = { height: "100%", borderRadius: 999, background: "var(--accent-gradient)", transition: "width .3s ease" };
+const uploadBtn: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", height: 44, borderRadius: 11, border: "1px dashed var(--accent-border)", background: "rgba(124,92,255,0.08)", color: "var(--text-purple)", fontSize: 13.5, fontWeight: 600, cursor: "pointer" };
+const matRow: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, height: 38, borderRadius: 9, background: "var(--surface-input)", border: "1px solid var(--hairline-2)", padding: "0 10px" };
+const matName: CSSProperties = { fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-body)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+const matDel: CSSProperties = { width: 24, height: 24, flex: "0 0 auto", borderRadius: 7, border: "1px solid var(--error-border)", background: "rgba(255,84,112,0.10)", color: "var(--status-error-text)", fontSize: 11 };
