@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Page, PageHeader } from "../components/ui";
-import { VIDEOS } from "../data/seed";
 import { listTasks, type ApiTask, TASK_STATE } from "../lib/api";
 import type { VideoStatus } from "../types";
 
@@ -60,9 +59,8 @@ export default function MeusVideos({ onNew }: { onNew: () => void }) {
         setDemo(false);
       })
       .catch(() => {
-        // Sem backend (modo demo): mostra os dados de exemplo.
         if (!alive) return;
-        setCards(VIDEOS.map((v) => ({ id: v.id, title: v.title, status: v.status, progress: 0, url: null, hue: v.hue })));
+        setCards([]);
         setDemo(true);
       })
       .finally(() => alive && setLoading(false));
@@ -88,7 +86,7 @@ export default function MeusVideos({ onNew }: { onNew: () => void }) {
     <Page>
       <PageHeader
         title="Meus vídeos"
-        subtitle={demo ? "Exibindo exemplos (backend offline)." : "Tudo que a sua equipe gerou — pronto pra baixar e postar."}
+        subtitle={demo ? "Não foi possível carregar a lista (backend offline)." : "Tudo que a sua equipe gerou — pronto pra baixar e postar."}
         right={<button style={newBtn} onClick={onNew}>+ Novo vídeo</button>}
       />
       <div style={{ display: "flex", gap: 10, marginBottom: 22, flexWrap: "wrap" }}>

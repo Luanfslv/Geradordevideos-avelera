@@ -9,7 +9,7 @@ interface PhonePreviewProps {
   subtitlesOn: boolean;
 }
 
-export default function PhonePreview({ aspect, generating, progress, genName, subtitlesOn }: PhonePreviewProps) {
+export default function PhonePreview({ aspect, generating, progress, genName }: PhonePreviewProps) {
   const portrait = aspect === "9:16";
   const frame: CSSProperties = {
     width: portrait ? 230 : "100%",
@@ -24,15 +24,10 @@ export default function PhonePreview({ aspect, generating, progress, genName, su
   };
   return (
     <div style={frame}>
-      {/* stripes */}
+      {/* textura */}
       <div style={{ position: "absolute", inset: 0, opacity: 0.18, backgroundImage: "repeating-linear-gradient(135deg, #fff 0 2px, transparent 2px 16px)" }} />
-      {/* top chips */}
-      <div style={chipsRow}>
-        <span style={chip}>@cria.acelera</span>
-        <span style={chip}>0:32</span>
-      </div>
 
-      {/* centro: play idle OU spinner gerando */}
+      {/* centro: play (idle) ou spinner (gerando) */}
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
         {generating ? (
           <>
@@ -43,29 +38,21 @@ export default function PhonePreview({ aspect, generating, progress, genName, su
             </div>
           </>
         ) : (
-          <span style={playGlyph} />
+          <>
+            <span style={playGlyph} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "rgba(255,255,255,0.6)", letterSpacing: "0.12em" }}>PRÉ-VISUALIZAÇÃO</span>
+          </>
         )}
       </div>
 
-      {/* legenda */}
-      {subtitlesOn && !generating && (
-        <div style={captionWrap}>
-          <span style={caption}>
-            isso muda <span style={{ color: "var(--status-lime)" }}>tudo</span>
-          </span>
-        </div>
-      )}
-
       {/* scrubber */}
       <div style={scrubber}>
-        <div style={{ width: generating ? `${progress}%` : "32%", height: "100%", background: "#fff", borderRadius: 999 }} />
+        <div style={{ width: generating ? `${progress}%` : "0%", height: "100%", background: "#fff", borderRadius: 999 }} />
       </div>
     </div>
   );
 }
 
-const chipsRow: CSSProperties = { position: "absolute", top: 12, left: 12, right: 12, display: "flex", justifyContent: "space-between" };
-const chip: CSSProperties = { fontFamily: "var(--font-mono)", fontSize: 10.5, color: "#fff", background: "rgba(0,0,0,0.35)", padding: "4px 8px", borderRadius: 999, backdropFilter: "blur(4px)" };
 const playGlyph: CSSProperties = {
   width: 0, height: 0, borderStyle: "solid", borderWidth: "14px 0 14px 22px",
   borderColor: "transparent transparent transparent #fff",
@@ -76,6 +63,4 @@ const spinner: CSSProperties = {
   border: "3px solid rgba(255,255,255,0.25)", borderTopColor: "var(--status-warning)",
   animation: "acSpin 0.8s linear infinite",
 };
-const captionWrap: CSSProperties = { position: "absolute", left: 0, right: 0, bottom: 40, display: "flex", justifyContent: "center" };
-const caption: CSSProperties = { fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17, color: "#fff", textShadow: "0 2px 8px rgba(0,0,0,0.6)" };
 const scrubber: CSSProperties = { position: "absolute", left: 14, right: 14, bottom: 16, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.25)" };

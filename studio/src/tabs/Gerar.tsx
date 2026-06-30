@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Page, PageHeader, Panel, SectionHeader, Segmented, SelectRow, Toggle, Label, Chip } from "../components/ui";
 import PhonePreview from "../components/PhonePreview";
-import { SAMPLE_KEYWORDS } from "../data/seed";
 import {
   generateScript,
   generateTerms,
@@ -14,7 +13,7 @@ import type { Aspect } from "../types";
 export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
   const [topic, setTopic] = useState("");
   const [script, setScript] = useState("");
-  const [keywords, setKeywords] = useState<string[]>(SAMPLE_KEYWORDS);
+  const [keywords, setKeywords] = useState<string[]>([]);
   const [source, setSource] = useState<"pexels" | "pixabay" | "local">("pexels");
   const [aspect, setAspect] = useState<Aspect>("9:16");
   const [voiceFem, setVoiceFem] = useState(false);
@@ -133,8 +132,16 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               <Label>Palavras-chave</Label>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {keywords.map((k) => <Chip key={k}>{k}</Chip>)}
-                <Chip dashed>+ adicionar</Chip>
+                {keywords.length === 0 ? (
+                  <span style={{ fontSize: 12.5, color: "var(--text-muted-2)" }}>
+                    Geradas pela IA junto com o roteiro.
+                  </span>
+                ) : (
+                  <>
+                    {keywords.map((k) => <Chip key={k}>{k}</Chip>)}
+                    <Chip dashed>+ adicionar</Chip>
+                  </>
+                )}
               </div>
             </div>
           </div>
