@@ -1,0 +1,55 @@
+# Gerador Acelera — produção (VPS)
+# WebUI Streamlit atrás do Caddy (HTTPS automático via Let's Encrypt).
+# Subir:   docker compose -f docker-compose.prod.yml up -d --build
+# Logs:    docker compose -f docker-compose.prod.yml logs -f
+# Parar:   docker compose -f docker-compose.prod.yml down
+#
+# Pré-requisitos:
+#   - config.toml preenchido (Pexels, Gemini e [supabase] enabled=true + url + anon_key)
+#   - Caddyfile com o seu subdomínio
+#   - DNS do subdomínio apontando para o IP da VPS (ver DEPLOY-ACELERA.md)
+
+services:
+  webui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Fora da China: usa mirrors oficiais de Debian/PyPI no build.
+        DOCKER_BUILD_MIRROR: default
+        PIP_USE_OFFICIAL: "1"
+    container_name: gerador-acelera-webui
+    expose:
+      - "8501"            # só interno; quem expõe pra internet é o Caddy
+    command: [
+      "streamlit", "run", "./webui/Main.py",
+      "--server.address=0.0.0.0",
+      "--server.port=8501",
+      "--server.headless=true",
+      "--server.enableCORS=false",
+      "--server.enableXsrfProtection=false",
+      "--browser.gatherUsageStats=false",
+      "--server.showEmailPrompt=false"
+    ]
+    volumes:
+      - ./config.toml:/MoneyPrinterTurbo/config.toml   # suas chaves (não versionado)
+      - ./storage:/MoneyPrinterTurbo/storage           # vídeos efêmeros (limpos por TTL)
+    restart: always
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: gerador-acelera-caddy
+    depends_on:
+      - webui
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data       # guarda os certificados HTTPS
+      - caddy_config:/config
+    restart: always
+
+volumes:
+  caddy_data:
+  caddy_config:

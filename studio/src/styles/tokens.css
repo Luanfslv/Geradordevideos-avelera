@@ -1,0 +1,58 @@
+/* Acelera Studio — design tokens (do handoff) */
+:root {
+  /* Backgrounds */
+  --bg-root: #0c0c11;
+  --bg-app: #0a0a0f;
+  --bg-login-v2: #09090e;
+  --bg-login-v3-panel: #0b0b11;
+
+  /* Surfaces */
+  --surface-panel: #13131b;
+  --surface-panel-alt: #14141d;
+  --surface-input: #0e0e15;
+
+  /* Accent */
+  --accent-pink: #ff2e93;
+  --accent-purple: #7c5cff;
+  --accent-gradient: linear-gradient(120deg, #ff2e93, #7c5cff);
+  --accent-gradient-135: linear-gradient(135deg, #ff2e93, #7c5cff);
+
+  /* Status */
+  --status-success: #21d4c4;
+  --status-lime: #c6ff3d;
+  --status-warning: #ffb23e;
+  --status-error: #ff5470;
+  --status-error-text: #ff8da0;
+
+  /* Text */
+  --text-primary: #f4f4f7;
+  --text-strong: #edeaf2;
+  --text-body: #d8d5e0;
+  --text-body-2: #d4d0de;
+  --text-muted: #9a95a7;
+  --text-muted-2: #8c8799;
+  --text-mono-muted: #807b91;
+  --text-faint: #6b6675;
+  --text-purple: #b49bff;
+  --text-purple-2: #c9bbff;
+  --placeholder: #5a5a66;
+
+  /* Borders */
+  --hairline: rgba(255, 255, 255, 0.06);
+  --hairline-2: rgba(255, 255, 255, 0.1);
+  --accent-border: rgba(124, 92, 255, 0.25);
+  --accent-border-strong: rgba(124, 92, 255, 0.32);
+  --error-border: rgba(255, 84, 112, 0.25);
+
+  /* Fonts */
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Shadows */
+  --shadow-accent: 0 12px 30px rgba(124, 92, 255, 0.4);
+  --shadow-accent-hover: 0 16px 38px rgba(124, 92, 255, 0.55);
+  --shadow-logo: 0 8px 24px rgba(124, 92, 255, 0.45);
+  --shadow-phone: 0 22px 54px rgba(0, 0, 0, 0.55);
+  --focus-ring: 0 0 0 4px rgba(124, 92, 255, 0.16);
+}

@@ -1,0 +1,16 @@
+# Gerador Acelera — Caddy (reverse proxy + HTTPS automático)
+#
+# 1) Troque "gerador.SEUDOMINIO.com.br" pelo seu subdomínio real.
+# 2) Garanta que esse subdomínio aponta (DNS A) para o IP da VPS.
+#    No Cloudflare, use DNS "somente" (nuvem cinza) para o Caddy emitir o
+#    certificado Let's Encrypt direto. (Ver DEPLOY-ACELERA.md.)
+# 3) O e-mail abaixo é usado pela Let's Encrypt para avisos de certificado.
+
+{
+	email luan@aceleravaquinha.com
+}
+
+gerador.SEUDOMINIO.com.br {
+	encode gzip
+	reverse_proxy webui:8501
+}

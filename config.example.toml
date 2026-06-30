@@ -348,6 +348,11 @@ max_concurrent_tasks = 5
 # 并发任务已满后的最大排队任务数，超过后接口返回 429，避免匿名请求无限堆积
 max_queued_tasks = 100
 
+# Acelera: minutos até apagar os vídeos gerados do disco (0 = nunca).
+# Mantém o custo de storage em zero: o colaborador gera, baixa no PC e o
+# arquivo é removido depois desse tempo. Nada vai para o Supabase Storage.
+output_retention_minutes = 60
+
 
 [whisper]
 # Only effective when subtitle_provider is "whisper"
@@ -397,6 +402,12 @@ api_key = ""
 model_id = "eleven_multilingual_v2"
 
 [ui]
+# Acelera: padrões em Português (BR)
+language = "pt"                          # idioma da interface
+script_language = "pt-BR"                # idioma do roteiro gerado pela IA
+voice_name = "pt-BR-AntonioNeural-Male"  # voz da narração (edge-tts, grátis)
+tts_server = "azure-tts-v1"              # edge-tts (sem chave)
+font_name = "BeVietnamPro-Bold.ttf"      # fonte com acentos PT-BR
 # UI related settings
 # 是否隐藏日志信息
 # Whether to hide logs in the UI
@@ -448,3 +459,13 @@ api_key = ""
 model_id = "chatterbox"
 # Voices exposed by your server; shown in the WebUI dropdown as chatterbox:<name>
 voices = ["default-Female"]
+
+[supabase]
+# Acelera: login dos colaboradores via Supabase Auth.
+# enabled=false => a WebUI abre sem login (uso local/dev).
+# enabled=true  => exige email/senha de usuários criados no Supabase Auth.
+enabled = false
+# URL do projeto Supabase, ex.: https://abcd.supabase.co
+url = ""
+# Chave ANON (pública/segura). NUNCA use a service_role aqui.
+anon_key = ""

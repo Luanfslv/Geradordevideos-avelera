@@ -1,0 +1,117 @@
+/* Acelera Studio — global + keyframes (do handoff) */
+@import "./tokens.css";
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-root);
+}
+body {
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+#root {
+  min-height: 100vh;
+}
+::selection {
+  background: rgba(124, 92, 255, 0.35);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--placeholder);
+}
+input,
+textarea,
+button,
+select {
+  font-family: inherit;
+}
+a {
+  color: var(--text-purple);
+  text-decoration: none;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a36;
+  border-radius: 999px;
+  border: 2px solid var(--bg-root);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Keyframes (exatos do protótipo) */
+@keyframes acFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20px, -28px) scale(1.06); }
+}
+@keyframes acFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-26px, 18px) scale(1.1); }
+}
+@keyframes acPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.9; }
+}
+@keyframes acSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes acRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes acShine {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes acBar {
+  0% { transform: scaleY(0.35); }
+  100% { transform: scaleY(1); }
+}
+@keyframes acTick {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+@keyframes acCol1 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-26px); }
+}
+@keyframes acCol2 {
+  0%, 100% { transform: translateY(-20px); }
+  50% { transform: translateY(12px); }
+}
+@keyframes acCol3 {
+  0%, 100% { transform: translateY(-8px); }
+  50% { transform: translateY(-36px); }
+}
+
+/* Helpers compartilhados */
+.ac-eyebrow {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 10px;
+  color: var(--text-mono-muted);
+}
+.ac-gradient-text {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.ac-focusable:focus {
+  outline: none;
+  border-color: var(--accent-purple);
+  box-shadow: var(--focus-ring);
+}
+button {
+  cursor: pointer;
+}

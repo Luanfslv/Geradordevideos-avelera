@@ -41,6 +41,15 @@ st.set_page_config(
     },
 )
 
+# ── Acelera: limpeza de vídeos efêmeros + login opcional (Supabase Auth) ──
+# Roda logo após set_page_config e antes de renderizar o app.
+# - cleanup: apaga vídeos antigos do disco (sem custo de Supabase Storage).
+# - require_login: exige login dos colaboradores quando [supabase].enabled=true.
+from webui import auth as _acelera_auth
+
+_acelera_auth.cleanup_ephemeral_outputs()
+_acelera_auth.require_login()
+
 
 streamlit_style = """
 <style>

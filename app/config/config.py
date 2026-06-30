@@ -166,6 +166,9 @@ azure = _cfg.get("azure", {})
 siliconflow = _cfg.get("siliconflow", {})
 elevenlabs = _cfg.get("elevenlabs", {})
 chatterbox = _cfg.get("chatterbox", {})
+# Acelera: login opcional dos colaboradores via Supabase Auth.
+# Seção [supabase] no config.toml: enabled / url / anon_key.
+supabase = _cfg.get("supabase", {})
 ui = _cfg.get(
     "ui",
     {

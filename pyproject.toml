@@ -34,6 +34,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Acelera: login dos colaboradores via Supabase Auth. Instale com:
+#   uv sync --extra auth
+auth = [
+    "supabase>=2.10.0",
+]
 g4f = [
     "g4f==0.5.2.2",
 ]
