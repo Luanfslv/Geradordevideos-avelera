@@ -43,6 +43,13 @@ export async function signOut(): Promise<void> {
   if (client) await client.auth.signOut();
 }
 
+/** Token de acesso atual (para enviar ao backend). Null em modo demo. */
+export async function getAccessToken(): Promise<string | null> {
+  if (!client) return null;
+  const { data } = await client.auth.getSession();
+  return data.session?.access_token ?? null;
+}
+
 /** Monta um Member a partir do email/handle digitado (fallback quando não está no time). */
 export function memberFromIdentifier(identifier: string): Member {
   const base = identifier.split("@")[0] || "cria";

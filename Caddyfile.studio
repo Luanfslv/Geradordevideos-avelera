@@ -1,0 +1,24 @@
+# Acelera Studio (front React) + API FastAPI, atrás do Caddy com HTTPS.
+# Troque o domínio se necessário.
+{
+	email luan@aceleravaquinha.com
+}
+
+acelera-studio.com {
+	encode gzip
+
+	# API de geração e arquivos de vídeo vão pro backend FastAPI.
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+	handle /tasks/* {
+		reverse_proxy api:8080
+	}
+
+	# Tudo o mais é o app React (SPA).
+	handle {
+		root * /srv/studio
+		try_files {path} /index.html
+		file_server
+	}
+}

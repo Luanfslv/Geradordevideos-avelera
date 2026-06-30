@@ -1,0 +1,50 @@
+# Gerador Acelera — produção com a UI nova (Acelera Studio).
+# WebUI React (Caddy) + API FastAPI (geração real). Substitui a Streamlit.
+#
+# Subir:  docker compose -f docker-compose.studio.yml up -d --build
+# (use o update-studio.sh pra automatizar a troca a partir da Streamlit)
+#
+# Requer um arquivo .env ao lado com:
+#   VITE_SUPABASE_URL=...
+#   VITE_SUPABASE_ANON_KEY=...
+# (o update-studio.sh gera isso a partir do config.toml)
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DOCKER_BUILD_MIRROR: default
+        PIP_USE_OFFICIAL: "1"
+    container_name: gerador-acelera-api
+    command: ["python3", "main.py"]
+    expose:
+      - "8080"
+    volumes:
+      - ./config.toml:/MoneyPrinterTurbo/config.toml
+      - ./storage:/MoneyPrinterTurbo/storage
+    restart: always
+
+  web:
+    build:
+      context: ./studio
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
+    container_name: gerador-acelera-web
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile.studio:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: always
+
+volumes:
+  caddy_data:
+  caddy_config:

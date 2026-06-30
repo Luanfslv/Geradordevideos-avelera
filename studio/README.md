@@ -31,15 +31,26 @@ npm run build     # type-check estrito + bundle em dist/
 npm run preview   # serve o build
 ```
 
-## Integração com o backend (TODO)
-A UI está completa e funcional de forma autônoma (pipeline e dados são simulados).
-Pontos para ligar no backend real do MoneyPrinterTurbo (FastAPI em `app/controllers/v1/`):
+## Integração com o backend (LIGADO ✅)
+O front fala com o **FastAPI** do MoneyPrinterTurbo (`app/controllers/v1/`), via `src/lib/api.ts`:
 
-- `src/lib/pipeline.ts` — trocar o timer simulado pelo progresso real do job (polling/websocket de `/api/v1/...`).
-- `src/data/seed.ts` — substituir TEAM e VIDEOS por dados reais (roster do Supabase + lista de vídeos da API).
-- **Gerar** — `POST` do tema/roteiro/opções para criar a task de vídeo.
-- **Meus vídeos** — `GET` da lista + ações Baixar/Postar (download efêmero + Upload-Post p/ TikTok).
-- **Login** — já usa `signInWithPassword`; criar os usuários no Supabase Auth.
+- **Gerar roteiro** → `POST /api/v1/scripts` (Gemini) + `POST /api/v1/terms` (palavras-chave).
+- **Gerar vídeo** → `POST /api/v1/videos` (cria a task) e **polling** em `GET /api/v1/tasks/{id}` com progresso real.
+- **Meus vídeos** → `GET /api/v1/tasks` (lista real); botão **Baixar** aponta pro arquivo em `/tasks/...`.
+- **Login** → Supabase Auth (`signInWithPassword`); o token vai no header `Authorization` das chamadas.
+
+Em dev, o Vite faz proxy de `/api` → `http://127.0.0.1:8080` (suba o backend com `uv run python main.py`).
+
+## Deploy em produção (substitui a Streamlit)
+Arquivos: `Dockerfile` (build React + Caddy), `docker-compose.studio.yml` (API FastAPI + web Caddy), `Caddyfile.studio` (roteia `/api` e `/tasks` → API, resto = React), `update-studio.sh` (troca automática).
+
+Na VPS, dentro de `/opt/gerador-acelera`:
+```sh
+bash update-studio.sh
+```
+Isso puxa o código, gera o `.env` do front a partir do `config.toml`, derruba a Streamlit e sobe **API + UI nova** no mesmo domínio.
+
+> ⚠️ Pendente de **hardening**: os endpoints `/api` ainda não validam o JWT do Supabase no servidor (a UI gateia o login, mas a API fica acessível direto). Verificação do JWT no FastAPI é o próximo passo de segurança.
 
 ## Estrutura
 ```
