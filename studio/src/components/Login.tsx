@@ -1,7 +1,5 @@
 import { useState, type CSSProperties, type FormEvent } from "react";
 import Logo from "./Logo";
-import Avatar from "./Avatar";
-import { TEAM } from "../data/seed";
 import { signIn, authConfigured, memberFromIdentifier } from "../lib/supabase";
 import type { Member } from "../types";
 
@@ -13,7 +11,6 @@ export default function Login({ onLogin }: LoginProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
-  const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -31,14 +28,7 @@ export default function Login({ onLogin }: LoginProps) {
       setError(res.error ?? "Não foi possível entrar.");
       return;
     }
-    const handle = username.trim().replace(/^@/, "").split("@")[0];
-    const member = TEAM.find((m) => m.handle === handle) ?? memberFromIdentifier(username);
-    onLogin(member);
-  }
-
-  function pickTeam(i: number) {
-    setSelected(i);
-    setUsername(TEAM[i].handle);
+    onLogin(memberFromIdentifier(username));
   }
 
   return (
@@ -127,21 +117,6 @@ export default function Login({ onLogin }: LoginProps) {
             {loading ? "Entrando…" : "Entrar no estúdio"}
           </button>
 
-          <div style={divider}>
-            <span style={dividerLine} />
-            <span className="ac-eyebrow">OU ENTRE COMO</span>
-            <span style={dividerLine} />
-          </div>
-
-          <div style={teamRow}>
-            {TEAM.map((m, i) => (
-              <button type="button" key={m.handle} onClick={() => pickTeam(i)} style={teamBtn}>
-                <Avatar initials={m.initials} color={m.color} size={44} ring={selected === i} />
-                <span style={{ fontSize: 12.5, color: "var(--text-body)" }}>{m.first}</span>
-              </button>
-            ))}
-          </div>
-
           <p style={footer}>
             Não tem acesso? <a href="#" onClick={(e) => e.preventDefault()}>Fale com o admin</a>
             {!authConfigured && <span style={demoTag}>modo demo</span>}
@@ -217,9 +192,5 @@ const primaryBtn: CSSProperties = {
   color: "#fff", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16,
   boxShadow: "var(--shadow-accent)", marginTop: 4,
 };
-const divider: CSSProperties = { display: "flex", alignItems: "center", gap: 14, margin: "8px 0" };
-const dividerLine: CSSProperties = { flex: 1, height: 1, background: "var(--hairline-2)" };
-const teamRow: CSSProperties = { display: "flex", gap: 14, justifyContent: "center" };
-const teamBtn: CSSProperties = { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, background: "none", border: "none", padding: 4 };
 const footer: CSSProperties = { textAlign: "center", fontSize: 13, color: "var(--text-muted-2)", marginTop: 6, display: "flex", gap: 8, justifyContent: "center", alignItems: "center" };
 const demoTag: CSSProperties = { fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--status-warning)", border: "1px solid rgba(255,178,62,0.3)", borderRadius: 999, padding: "2px 7px" };

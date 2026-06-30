@@ -64,10 +64,28 @@ export interface CreateVideoParams {
   subject: string;
   script: string;
   terms: string[];
+  // vídeo
+  source: string;            // pexels | pixabay | local
   aspect: "9:16" | "16:9";
+  concatMode: string;        // random | sequential
+  transition: string;        // "" | Shuffle | FadeIn | FadeOut | SlideIn | SlideOut
+  clipDuration: number;
+  videoCount: number;
+  // áudio
   voiceName: string;
-  source: string;
+  voiceVolume: number;
+  voiceRate: number;
+  bgmType: string;           // random | "" (nenhuma)
+  bgmVolume: number;
+  // legendas
   subtitlesOn: boolean;
+  fontName: string;
+  subtitlePosition: string;  // top | center | bottom
+  textColor: string;
+  fontSize: number;
+  strokeColor: string;
+  strokeWidth: number;
+  subtitleBg: boolean;
   language?: string;
 }
 
@@ -78,15 +96,26 @@ export async function createVideo(p: CreateVideoParams): Promise<string> {
       video_subject: p.subject,
       video_script: p.script,
       video_terms: p.terms.join(", "),
-      video_aspect: p.aspect,
       video_source: p.source,
+      video_aspect: p.aspect,
+      video_concat_mode: p.concatMode,
+      video_transition_mode: p.transition || null,
+      video_clip_duration: p.clipDuration,
+      video_count: p.videoCount,
       video_language: p.language ?? "pt-BR",
       voice_name: p.voiceName,
+      voice_volume: p.voiceVolume,
+      voice_rate: p.voiceRate,
+      bgm_type: p.bgmType,
+      bgm_volume: p.bgmVolume,
       subtitle_enabled: p.subtitlesOn,
-      font_name: "BeVietnamPro-Bold.ttf",
-      subtitle_position: "bottom",
-      font_size: 60,
-      video_count: 1,
+      font_name: p.fontName,
+      subtitle_position: p.subtitlePosition,
+      text_fore_color: p.textColor,
+      font_size: p.fontSize,
+      stroke_color: p.strokeColor,
+      stroke_width: p.strokeWidth,
+      text_background_color: p.subtitleBg,
     }),
   });
   return data.task_id;
@@ -174,4 +203,22 @@ export async function listTasks(): Promise<ApiTask[]> {
     method: "GET",
   });
   return data.tasks ?? [];
+}
+
+// ── Configuração gerenciada (chaves de API + provedor de IA) ──────────────
+export interface ManagedConfig {
+  llm_provider: string;
+  gemini_api_key: string;
+  openai_api_key: string;
+  pexels_api_keys: string[];
+  pixabay_api_keys: string[];
+  coverr_api_keys: string[];
+}
+
+export async function getConfig(): Promise<ManagedConfig> {
+  return req<ManagedConfig>("/config", { method: "GET" });
+}
+
+export async function updateConfig(patch: Partial<ManagedConfig>): Promise<void> {
+  await req<{ saved: boolean }>("/config", { method: "POST", body: JSON.stringify(patch) });
 }

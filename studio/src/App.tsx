@@ -31,7 +31,7 @@ export default function App() {
       <Navbar user={user} tab={tab} onTab={setTab} onLogout={handleLogout} />
       {tab === "gerar" && <Gerar onGoToVideos={() => setTab("videos")} />}
       {tab === "videos" && <MeusVideos onNew={() => setTab("gerar")} />}
-      {tab === "config" && <Configuracoes />}
+      {tab === "config" && <Configuracoes user={user} />}
     </div>
   );
 }

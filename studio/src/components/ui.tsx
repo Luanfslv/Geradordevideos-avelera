@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 export function Page({ children, maxWidth = 1340 }: { children: ReactNode; maxWidth?: number }) {
   return <div style={{ maxWidth, margin: "0 auto", padding: "32px 28px 64px" }}>{children}</div>;
@@ -108,5 +108,83 @@ export function Chip({ children, dashed = false }: { children: ReactNode; dashed
       border: dashed ? "1px dashed var(--accent-border)" : "1px solid var(--accent-border)",
       color: "var(--text-purple-2)",
     }}>{children}</span>
+  );
+}
+
+/** Dropdown real (select nativo estilizado). */
+export function Select<T extends string>({
+  label, value, onChange, options,
+}: { label?: string; value: T; onChange: (v: T) => void; options: { id: T; label: string }[] }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {label && <Label>{label}</Label>}
+      <select
+        className="ac-focusable"
+        value={value}
+        onChange={(e) => onChange(e.target.value as T)}
+        style={{
+          height: 46, borderRadius: 11, background: "var(--surface-input)", border: "1px solid var(--hairline-2)",
+          padding: "0 14px", color: "var(--text-strong)", fontSize: 14, appearance: "none",
+          backgroundImage: "linear-gradient(45deg, transparent 50%, var(--text-faint) 50%), linear-gradient(135deg, var(--text-faint) 50%, transparent 50%)",
+          backgroundPosition: "calc(100% - 18px) 19px, calc(100% - 13px) 19px",
+          backgroundSize: "5px 5px, 5px 5px", backgroundRepeat: "no-repeat",
+        }}
+      >
+        {options.map((o) => (
+          <option key={o.id} value={o.id} style={{ background: "#13131b", color: "#fff" }}>{o.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/** Slider com rótulo + valor. */
+export function Slider({
+  label, value, onChange, min, max, step = 0.1, format,
+}: { label: string; value: number; onChange: (v: number) => void; min: number; max: number; step?: number; format?: (v: number) => string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <Label>{label}</Label>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-purple-2)" }}>
+          {format ? format(value) : value}
+        </span>
+      </div>
+      <input
+        type="range" min={min} max={max} step={step} value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{ width: "100%", accentColor: "var(--accent-purple)" }}
+      />
+    </div>
+  );
+}
+
+/** Linha com seletor de cor. */
+export function ColorRow({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Label>{label}</Label>
+      <input
+        type="color" value={value} onChange={(e) => onChange(e.target.value)}
+        style={{ width: 46, height: 30, padding: 0, border: "1px solid var(--hairline-2)", borderRadius: 8, background: "none", cursor: "pointer" }}
+      />
+    </div>
+  );
+}
+
+/** Seção colapsável (configurações avançadas). */
+export function Expander({ title, children }: { title: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ border: "1px solid var(--hairline)", borderRadius: 12, overflow: "hidden" }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 14px", background: "var(--surface-input)", border: "none", color: "var(--text-body)", fontSize: 13.5, fontWeight: 600 }}
+      >
+        {title}
+        <span style={{ color: "var(--text-faint)", transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }}>›</span>
+      </button>
+      {open && <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>{children}</div>}
+    </div>
   );
 }

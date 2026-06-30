@@ -1,81 +1,168 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
-import { Page, PageHeader, Panel, SectionHeader, Label, SelectRow, Toggle, Segmented } from "../components/ui";
+import { useEffect, useState, type CSSProperties } from "react";
+import { Page, PageHeader, Panel, SectionHeader, Label, Select, Toggle, Segmented } from "../components/ui";
 import Avatar from "../components/Avatar";
-import { TEAM } from "../data/seed";
+import { getConfig, updateConfig, type ManagedConfig } from "../lib/api";
+import type { Member } from "../types";
 
-export default function Configuracoes() {
+export default function Configuracoes({ user }: { user: Member }) {
+  const [cfg, setCfg] = useState<ManagedConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  const [provider, setProvider] = useState("gemini");
+  const [llmKey, setLlmKey] = useState("");
+  const [savedLLM, setSavedLLM] = useState(false);
+
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [notify, setNotify] = useState(true);
 
+  useEffect(() => {
+    getConfig()
+      .then((c) => {
+        setCfg(c);
+        setProvider(c.llm_provider || "gemini");
+        setLlmKey((c.llm_provider === "openai" ? c.openai_api_key : c.gemini_api_key) || "");
+      })
+      .catch(() => setErr("Não foi possível carregar a configuração (backend offline ou sem permissão)."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function onProvider(p: string) {
+    setProvider(p);
+    if (cfg) setLlmKey((p === "openai" ? cfg.openai_api_key : cfg.gemini_api_key) || "");
+  }
+
+  async function saveLLM() {
+    const patch: Partial<ManagedConfig> = { llm_provider: provider };
+    if (provider === "openai") patch.openai_api_key = llmKey;
+    else patch.gemini_api_key = llmKey;
+    try {
+      await updateConfig(patch);
+      setCfg((c) => (c ? ({ ...c, ...patch } as ManagedConfig) : c));
+      setSavedLLM(true);
+      setTimeout(() => setSavedLLM(false), 2000);
+    } catch {
+      setErr("Falha ao salvar. Tente de novo.");
+    }
+  }
+
+  async function saveKeys(field: keyof ManagedConfig, keys: string[]) {
+    try {
+      await updateConfig({ [field]: keys } as Partial<ManagedConfig>);
+      setCfg((c) => (c ? ({ ...c, [field]: keys } as ManagedConfig) : c));
+    } catch {
+      setErr("Falha ao salvar a chave. Tente de novo.");
+    }
+  }
+
   return (
     <Page maxWidth={1180}>
-      <PageHeader title="Configurações" subtitle="Chaves de API, narração e quem tem acesso ao estúdio." />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(330px, 1fr))", gap: 18, alignItems: "start" }}>
-        {/* Coluna esquerda */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <Panel>
-            <SectionHeader title="Inteligência artificial (roteiro)" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <SelectRow label="Provedor" value={<span>Google Gemini <Tag>GRÁTIS</Tag></span>} />
-              <KeyRow label="Chave da API" masked="••••••••••••••••a91f" status="conectada" />
-              <SelectRow label="Modelo" value="gemini-1.5-flash" />
-            </div>
-          </Panel>
-          <Panel>
-            <SectionHeader title="Fontes de vídeo" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <KeyRow label="Pexels" masked="••••••••••••3f7c" status="conectada" />
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Label>Pixabay</Label>
-                <button style={addRow}>+ adicionar chave</button>
-              </div>
-            </div>
-          </Panel>
-          <Panel>
-            <SectionHeader title="Narração (TTS)" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <SelectRow label="Provedor" value={<span>Microsoft edge-tts <Tag>GRÁTIS · SEM CHAVE</Tag></span>} />
-              <SelectRow label="Voz padrão" value="🇧🇷 Antônio · masculina" />
-            </div>
-          </Panel>
-        </div>
-
-        {/* Coluna direita */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <Panel>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <SectionHeaderInline title="Equipe & acesso" />
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-mono-muted)" }}>{TEAM.length} membros</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {TEAM.map((m) => (
-                <div key={m.handle} style={memberRow}>
-                  <Avatar initials={m.initials} color={m.color} size={40} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-strong)" }}>{m.name}</div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-mono-muted)" }}>@{m.handle}</div>
-                  </div>
-                  <span style={rolePill}>{m.role}</span>
+      <PageHeader title="Configurações" subtitle="Chaves de API, IA, narração e quem tem acesso ao estúdio." />
+      {err && <div style={errorBox}>{err}</div>}
+      {loading ? (
+        <div style={{ color: "var(--text-muted)" }}>Carregando…</div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(330px, 1fr))", gap: 18, alignItems: "start" }}>
+          {/* Esquerda */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <Panel>
+              <SectionHeader title="Inteligência artificial (roteiro)" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <Select label="Provedor" value={provider} onChange={onProvider}
+                  options={[{ id: "gemini", label: "Google Gemini (grátis)" }, { id: "openai", label: "OpenAI" }]} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Label>{provider === "openai" ? "Chave OpenAI" : "Chave Gemini"}</Label>
+                  <input className="ac-focusable" type="password" style={input} placeholder="Cole a chave da API"
+                    value={llmKey} onChange={(e) => setLlmKey(e.target.value)} />
                 </div>
-              ))}
-              <button style={inviteBtn}>+ Convidar colaborador</button>
-            </div>
-          </Panel>
-          <Panel>
-            <SectionHeader title="Preferências" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <SelectRow label="Idioma da interface" value="🇧🇷 Português (BR)" />
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Label>Tema</Label>
-                <Segmented value={theme} onChange={setTheme} options={[{ id: "dark", label: "Escuro" }, { id: "light", label: "Claro" }]} />
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <button style={saveBtn} onClick={saveLLM}>Salvar</button>
+                  {savedLLM && <span style={{ color: "var(--status-success)", fontSize: 13 }}>✓ salvo</span>}
+                </div>
               </div>
-              <Toggle on={notify} onChange={setNotify} label="Notificar quando renderizar" sublabel={notify ? "Ativado" : "Desativado"} />
-            </div>
-          </Panel>
+            </Panel>
+
+            <Panel>
+              <SectionHeader title="Fontes de vídeo (chaves de API)" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <KeyManager label="Pexels" keys={cfg?.pexels_api_keys ?? []} onChange={(k) => saveKeys("pexels_api_keys", k)} />
+                <KeyManager label="Pixabay" keys={cfg?.pixabay_api_keys ?? []} onChange={(k) => saveKeys("pixabay_api_keys", k)} />
+                <KeyManager label="Coverr" keys={cfg?.coverr_api_keys ?? []} onChange={(k) => saveKeys("coverr_api_keys", k)} />
+              </div>
+            </Panel>
+
+            <Panel>
+              <SectionHeader title="Narração (TTS)" />
+              <p style={{ margin: 0, fontSize: 13.5, color: "var(--text-muted)" }}>
+                Microsoft <b>edge-tts</b> — grátis e sem chave. As vozes e a velocidade são escolhidas por vídeo na tela <b>Gerar</b>.
+              </p>
+            </Panel>
+          </div>
+
+          {/* Direita */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <Panel>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+                <SectionHeaderInline title="Equipe & acesso" />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-mono-muted)" }}>você</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={memberRow}>
+                  <Avatar initials={user.initials} color={user.color} size={40} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-strong)" }}>{user.name}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-mono-muted)" }}>@{user.handle}</div>
+                  </div>
+                  <span style={rolePill}>{user.role}</span>
+                </div>
+                <span style={{ fontSize: 12, color: "var(--text-muted-2)", marginTop: 2 }}>
+                  Os colaboradores são gerenciados no Supabase (Authentication → Users).
+                </span>
+              </div>
+            </Panel>
+
+            <Panel>
+              <SectionHeader title="Preferências" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <Select label="Idioma da interface" value="pt-BR" onChange={() => {}} options={[{ id: "pt-BR", label: "🇧🇷 Português (BR)" }]} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Label>Tema</Label>
+                  <Segmented value={theme} onChange={setTheme} options={[{ id: "dark", label: "Escuro" }, { id: "light", label: "Claro" }]} />
+                </div>
+                <Toggle on={notify} onChange={setNotify} label="Notificar quando renderizar" sublabel={notify ? "Ativado" : "Desativado"} />
+              </div>
+            </Panel>
+          </div>
         </div>
-      </div>
+      )}
     </Page>
   );
+}
+
+function KeyManager({ label, keys, onChange }: { label: string; keys: string[]; onChange: (keys: string[]) => void }) {
+  const [val, setVal] = useState("");
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <Label>{label}</Label>
+      {keys.length === 0 && <span style={{ fontSize: 12, color: "var(--text-muted-2)" }}>Nenhuma chave configurada.</span>}
+      {keys.map((k, i) => (
+        <div key={i} style={keyRow}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 12.5, color: "var(--text-body)" }}>{mask(k)}</span>
+          <button style={delBtn} title="Excluir" onClick={() => onChange(keys.filter((_, j) => j !== i))}>✕</button>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 8 }}>
+        <input className="ac-focusable" style={{ ...input, height: 42 }} placeholder="Colar nova chave"
+          value={val} onChange={(e) => setVal(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && val.trim()) { onChange([...keys, val.trim()]); setVal(""); } }} />
+        <button style={addBtn} onClick={() => { if (val.trim()) { onChange([...keys, val.trim()]); setVal(""); } }}>Adicionar</button>
+      </div>
+    </div>
+  );
+}
+
+function mask(k: string): string {
+  return k.length > 12 ? `${k.slice(0, 6)}…${k.slice(-4)}` : k;
 }
 
 function SectionHeaderInline({ title }: { title: string }) {
@@ -87,25 +174,11 @@ function SectionHeaderInline({ title }: { title: string }) {
   );
 }
 
-function Tag({ children }: { children: ReactNode }) {
-  return <span style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, letterSpacing: "0.08em", color: "var(--status-success)", border: "1px solid rgba(33,212,196,0.3)", borderRadius: 999, padding: "2px 7px", marginLeft: 8 }}>{children}</span>;
-}
-
-function KeyRow({ label, masked, status }: { label: string; masked: string; status: string }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <Label>{label}</Label>
-      <div style={{ height: 46, borderRadius: 11, background: "var(--surface-input)", border: "1px solid var(--hairline-2)", padding: "0 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "var(--text-body)" }}>{masked}</span>
-        <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--status-success)" }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--status-success)" }} />{status}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-const addRow: CSSProperties = { height: 46, borderRadius: 11, background: "transparent", border: "1px dashed var(--accent-border)", color: "var(--text-purple)", fontSize: 13.5, fontWeight: 600 };
+const errorBox: CSSProperties = { margin: "0 0 18px", padding: "12px 16px", borderRadius: 12, background: "rgba(255,84,112,0.10)", border: "1px solid var(--error-border)", color: "var(--status-error-text)", fontSize: 13.5 };
+const input: CSSProperties = { height: 46, borderRadius: 11, background: "var(--surface-input)", border: "1px solid var(--hairline-2)", padding: "0 14px", color: "var(--text-strong)", fontSize: 14, flex: 1 };
+const saveBtn: CSSProperties = { height: 42, padding: "0 22px", borderRadius: 11, border: "none", background: "var(--accent-gradient)", color: "#fff", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14, boxShadow: "var(--shadow-accent)" };
+const keyRow: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", height: 42, borderRadius: 10, background: "var(--surface-input)", border: "1px solid var(--hairline-2)", padding: "0 12px" };
+const delBtn: CSSProperties = { width: 26, height: 26, borderRadius: 8, border: "1px solid var(--error-border)", background: "rgba(255,84,112,0.10)", color: "var(--status-error-text)", fontSize: 12, lineHeight: 1 };
+const addBtn: CSSProperties = { height: 42, padding: "0 16px", borderRadius: 10, border: "1px solid var(--accent-border)", background: "rgba(124,92,255,0.12)", color: "var(--text-purple-2)", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" };
 const memberRow: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 11, background: "var(--surface-input)", border: "1px solid var(--hairline)" };
 const rolePill: CSSProperties = { padding: "5px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, color: "var(--text-purple-2)", background: "rgba(124,92,255,0.14)", border: "1px solid var(--accent-border)" };
-const inviteBtn: CSSProperties = { height: 50, borderRadius: 12, background: "transparent", border: "1px dashed var(--accent-border)", color: "var(--text-purple)", fontSize: 14, fontWeight: 600, marginTop: 4 };
