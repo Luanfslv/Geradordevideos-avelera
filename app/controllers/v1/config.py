@@ -7,6 +7,7 @@ só quem está logado consegue ler/alterar (a anon key é pública, mas o token
 de sessão prova que o colaborador autenticou).
 """
 
+import json
 import urllib.error
 import urllib.request
 from typing import List, Optional
@@ -19,13 +20,13 @@ from app.controllers.v1.base import new_router
 from app.utils import utils
 
 
-def verify_supabase_token(authorization: Optional[str] = Header(default=None)):
-    """Valida o token de sessão do Supabase. Se o login não estiver
-    configurado (uso local), libera."""
+def fetch_supabase_user(authorization: Optional[str]):
+    """Valida o token e retorna o usuário do Supabase (dict com email).
+    Retorna None se o login não estiver configurado (uso local/dev)."""
     sb = getattr(config, "supabase", {}) or {}
     url, anon, enabled = sb.get("url"), sb.get("anon_key"), sb.get("enabled")
     if not (enabled and url and anon):
-        return True  # Supabase desligado → acesso liberado (dev/local)
+        return None  # Supabase desligado → acesso liberado (dev/local)
 
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="login obrigatório")
@@ -38,12 +39,33 @@ def verify_supabase_token(authorization: Optional[str] = Header(default=None)):
         with urllib.request.urlopen(req, timeout=8) as resp:
             if resp.status != 200:
                 raise HTTPException(status_code=401, detail="token inválido")
+            return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError:
         raise HTTPException(status_code=401, detail="token inválido")
     except HTTPException:
         raise
     except Exception:
         raise HTTPException(status_code=503, detail="falha ao validar login")
+
+
+def verify_supabase_token(authorization: Optional[str] = Header(default=None)):
+    """Exige um colaborador logado (qualquer um)."""
+    fetch_supabase_user(authorization)
+    return True
+
+
+def verify_admin(authorization: Optional[str] = Header(default=None)):
+    """Exige que o usuário logado seja o admin (config [supabase] admin_email)."""
+    user = fetch_supabase_user(authorization)
+    if user is None:
+        return True  # login desligado (dev)
+    sb = getattr(config, "supabase", {}) or {}
+    admin = (sb.get("admin_email") or "").strip().lower()
+    email = (user.get("email") or "").strip().lower()
+    if not admin:
+        raise HTTPException(status_code=403, detail="admin_email não configurado no config.toml")
+    if email != admin:
+        raise HTTPException(status_code=403, detail="apenas o admin pode gerenciar o acervo")
     return True
 
 

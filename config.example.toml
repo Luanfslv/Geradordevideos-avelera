@@ -469,3 +469,5 @@ enabled = false
 url = ""
 # Chave ANON (pública/segura). NUNCA use a service_role aqui.
 anon_key = ""
+# Email do admin que gerencia o acervo de vídeos padrão (upload/remoção).
+admin_email = ""

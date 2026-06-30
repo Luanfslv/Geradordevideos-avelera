@@ -50,6 +50,13 @@ export async function getAccessToken(): Promise<string | null> {
   return data.session?.access_token ?? null;
 }
 
+/** Email do usuário logado (para checar se é o admin). Null em modo demo. */
+export async function getUserEmail(): Promise<string | null> {
+  if (!client) return null;
+  const { data } = await client.auth.getSession();
+  return data.session?.user?.email ?? null;
+}
+
 /** Monta um Member a partir do email/handle digitado (fallback quando não está no time). */
 export function memberFromIdentifier(identifier: string): Member {
   const base = identifier.split("@")[0] || "cria";

@@ -26,6 +26,12 @@ if grep -q '^llm_provider = "openai"' config.toml 2>/dev/null; then
   echo "==> Ajustado llm_provider para gemini no config.toml."
 fi
 
+# Acelera: define o admin do acervo de vídeos (se ainda não definido).
+if ! grep -q '^admin_email' config.toml 2>/dev/null; then
+  sed -i '/^\[supabase\]/a admin_email = "luanfellipe123@gmail.com"' config.toml
+  echo "==> admin_email do acervo = luanfellipe123@gmail.com (edite no config.toml se precisar)."
+fi
+
 echo "==> Parando a versão Streamlit..."
 docker compose -f docker-compose.prod.yml down || true
 

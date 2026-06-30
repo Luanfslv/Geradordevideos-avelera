@@ -243,3 +243,44 @@ export async function getConfig(): Promise<ManagedConfig> {
 export async function updateConfig(patch: Partial<ManagedConfig>): Promise<void> {
   await req<{ saved: boolean }>("/config", { method: "POST", body: JSON.stringify(patch) });
 }
+
+// ── Acervo de vídeos padrão (admin) ───────────────────────────────────────
+export const ADMIN_EMAIL = "luanfellipe123@gmail.com";
+
+export interface LibraryItem {
+  name: string;
+  size: number;
+  file: string;
+}
+
+export async function listLibrary(): Promise<LibraryItem[]> {
+  const data = await req<{ files: LibraryItem[] }>("/library", { method: "GET" });
+  return data.files ?? [];
+}
+
+export async function uploadLibrary(file: File): Promise<string> {
+  const token = await getAccessToken();
+  const fd = new FormData();
+  fd.append("file", file);
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/library`, { method: "POST", body: fd, headers });
+  let json: { status?: number; data?: { file?: string }; message?: string; detail?: string; file?: string } = {};
+  try { json = await res.json(); } catch { /* sem corpo */ }
+  if (!res.ok || (typeof json.status === "number" && json.status >= 400)) {
+    throw new Error(json.message || json.detail || `Erro ${res.status}`);
+  }
+  return (json.data?.file ?? json.file ?? file.name) as string;
+}
+
+export async function deleteLibrary(filename: string): Promise<void> {
+  const token = await getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/library/${encodeURIComponent(filename)}`, { method: "DELETE", headers });
+  if (!res.ok) {
+    let json: { message?: string; detail?: string } = {};
+    try { json = await res.json(); } catch { /* sem corpo */ }
+    throw new Error(json.message || json.detail || `Erro ${res.status}`);
+  }
+}

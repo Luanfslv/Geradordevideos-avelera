@@ -3,7 +3,7 @@ import {
   Page, PageHeader, Panel, SectionHeader, Segmented, Select, Slider, ColorRow, Toggle, Label, Chip, Expander,
 } from "../components/ui";
 import PhonePreview from "../components/PhonePreview";
-import { generateScript, generateTerms, createVideo, pollTask, progressLabel, uploadMaterial } from "../lib/api";
+import { generateScript, generateTerms, createVideo, pollTask, progressLabel, uploadMaterial, listLibrary } from "../lib/api";
 import type { Aspect } from "../types";
 
 const VOICES = [
@@ -37,6 +37,7 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
   const [source, setSource] = useState("pexels");
   const [materials, setMaterials] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [libraryFiles, setLibraryFiles] = useState<string[]>([]);
   const [aspect, setAspect] = useState<Aspect>("9:16");
   const [concatMode, setConcatMode] = useState("random");
   const [transition, setTransition] = useState("");
@@ -66,8 +67,10 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
   const cancelRef = useRef<(() => void) | null>(null);
 
   useEffect(() => () => cancelRef.current?.(), []);
+  useEffect(() => { listLibrary().then((f) => setLibraryFiles(f.map((x) => x.file))).catch(() => {}); }, []);
 
   const localNeedsUpload = source === "local" && materials.length === 0;
+  const libraryEmpty = source === "library" && libraryFiles.length === 0;
 
   async function onUpload(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -103,6 +106,7 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
   async function generate() {
     if (generating) return;
     if (localNeedsUpload) { setError("Envie ao menos um vídeo local antes de gerar."); return; }
+    if (libraryEmpty) { setError("O acervo está vazio. Suba vídeos no acervo (Configurações) ou peça ao admin."); return; }
     if (!script.trim()) { setError("Gere ou escreva um roteiro antes."); return; }
     setError(""); setGenerating(true); setProgress(0); setGenName(progressLabel(0));
     try {
@@ -110,7 +114,9 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
         subject: topic.trim() || "Vídeo Acelera",
         script: script.trim(),
         terms: keywords,
-        source, materials, aspect, concatMode, transition,
+        source: source === "library" ? "local" : source,
+        materials: source === "library" ? libraryFiles : materials,
+        aspect, concatMode, transition,
         clipDuration, videoCount: Number(videoCount),
         voiceName, voiceVolume, voiceRate, bgmType, bgmVolume,
         subtitlesOn, fontName, subtitlePosition, textColor, fontSize, strokeColor, strokeWidth, subtitleBg,
@@ -185,7 +191,12 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <Label>Fonte dos clipes</Label>
               <Segmented value={source} onChange={setSource}
-                options={[{ id: "pexels", label: "Pexels" }, { id: "pixabay", label: "Pixabay" }, { id: "local", label: "Local" }]} />
+                options={[{ id: "pexels", label: "Pexels" }, { id: "pixabay", label: "Pixabay" }, { id: "library", label: "Acervo" }, { id: "local", label: "Local" }]} />
+              {source === "library" && (
+                <span style={{ fontSize: 11.5, color: libraryFiles.length ? "var(--status-success)" : "var(--status-warning)" }}>
+                  {libraryFiles.length ? `📁 ${libraryFiles.length} vídeo(s) no acervo padrão da Acelera.` : "Acervo vazio — suba vídeos em Configurações (admin)."}
+                </span>
+              )}
               {source === "local" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 2 }}>
                   <label style={{ ...uploadBtn, opacity: uploading ? 0.6 : 1 }}>
@@ -255,7 +266,7 @@ export default function Gerar({ onGoToVideos }: { onGoToVideos: () => void }) {
               </div>
             ) : (
               <>
-                <button style={{ ...generateBtn, opacity: script.trim() && !localNeedsUpload ? 1 : 0.6 }} onClick={generate}>Gerar vídeo</button>
+                <button style={{ ...generateBtn, opacity: script.trim() && !localNeedsUpload && !libraryEmpty ? 1 : 0.6 }} onClick={generate}>Gerar vídeo</button>
                 <span style={{ textAlign: "center", fontSize: 12, color: "var(--text-muted-2)" }}>narração grátis (edge-tts) · pt-BR</span>
               </>
             )}

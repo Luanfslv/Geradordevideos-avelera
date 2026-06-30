@@ -1,7 +1,11 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type ChangeEvent, type CSSProperties } from "react";
 import { Page, PageHeader, Panel, SectionHeader, Label, Select, Toggle, Segmented } from "../components/ui";
 import Avatar from "../components/Avatar";
-import { getConfig, updateConfig, type ManagedConfig } from "../lib/api";
+import {
+  getConfig, updateConfig, type ManagedConfig,
+  listLibrary, uploadLibrary, deleteLibrary, ADMIN_EMAIL, type LibraryItem,
+} from "../lib/api";
+import { getUserEmail, authConfigured } from "../lib/supabase";
 import type { Member } from "../types";
 
 export default function Configuracoes({ user }: { user: Member }) {
@@ -16,6 +20,10 @@ export default function Configuracoes({ user }: { user: Member }) {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [notify, setNotify] = useState(true);
 
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [library, setLibrary] = useState<LibraryItem[]>([]);
+  const [libUploading, setLibUploading] = useState(false);
+
   useEffect(() => {
     getConfig()
       .then((c) => {
@@ -26,6 +34,38 @@ export default function Configuracoes({ user }: { user: Member }) {
       .catch(() => setErr("Não foi possível carregar a configuração (backend offline ou sem permissão)."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      const email = await getUserEmail();
+      setIsAdmin(!authConfigured || email === ADMIN_EMAIL);
+      try { setLibrary(await listLibrary()); } catch { /* sem acervo / offline */ }
+    })();
+  }, []);
+
+  async function onLibUpload(e: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (!files.length) return;
+    setErr(""); setLibUploading(true);
+    try {
+      for (const f of files) await uploadLibrary(f);
+      setLibrary(await listLibrary());
+    } catch (er) {
+      setErr(er instanceof Error ? er.message : "Falha no upload do acervo.");
+    } finally {
+      setLibUploading(false);
+    }
+  }
+
+  async function removeLib(name: string) {
+    try {
+      await deleteLibrary(name);
+      setLibrary((l) => l.filter((x) => x.file !== name));
+    } catch (er) {
+      setErr(er instanceof Error ? er.message : "Falha ao remover do acervo.");
+    }
+  }
 
   function onProvider(p: string) {
     setProvider(p);
@@ -90,6 +130,30 @@ export default function Configuracoes({ user }: { user: Member }) {
                 <KeyManager label="Coverr" keys={cfg?.coverr_api_keys ?? []} onChange={(k) => saveKeys("coverr_api_keys", k)} />
               </div>
             </Panel>
+
+            {isAdmin && (
+              <Panel>
+                <SectionHeader title="Acervo de vídeos (admin)" />
+                <p style={{ margin: "0 0 14px", fontSize: 13, color: "var(--text-muted)" }}>
+                  Vídeos padrão que toda a equipe pode usar como fonte <b>Acervo</b> na tela Gerar — sem Pexels nem upload próprio.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {library.length === 0 && <span style={{ fontSize: 12.5, color: "var(--text-muted-2)" }}>Nenhum vídeo no acervo ainda.</span>}
+                  {library.map((v) => (
+                    <div key={v.file} style={keyRow}>
+                      <span style={{ fontSize: 12.5, color: "var(--text-body)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {v.name} <span style={{ color: "var(--text-faint)" }}>· {fmtSize(v.size)}</span>
+                      </span>
+                      <button style={delBtn} title="Remover" onClick={() => removeLib(v.file)}>✕</button>
+                    </div>
+                  ))}
+                  <label style={{ ...uploadLabel, opacity: libUploading ? 0.6 : 1 }}>
+                    {libUploading ? "Enviando… (vídeos longos podem demorar)" : "↑ Subir vídeo(s) ao acervo"}
+                    <input type="file" accept="video/*" multiple style={{ display: "none" }} onChange={onLibUpload} disabled={libUploading} />
+                  </label>
+                </div>
+              </Panel>
+            )}
 
             <Panel>
               <SectionHeader title="Narração (TTS)" />
@@ -165,6 +229,12 @@ function mask(k: string): string {
   return k.length > 12 ? `${k.slice(0, 6)}…${k.slice(-4)}` : k;
 }
 
+function fmtSize(bytes: number): string {
+  if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
+  if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(0)} MB`;
+  return `${(bytes / 1e3).toFixed(0)} KB`;
+}
+
 function SectionHeaderInline({ title }: { title: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -180,5 +250,6 @@ const saveBtn: CSSProperties = { height: 42, padding: "0 22px", borderRadius: 11
 const keyRow: CSSProperties = { display: "flex", justifyContent: "space-between", alignItems: "center", height: 42, borderRadius: 10, background: "var(--surface-input)", border: "1px solid var(--hairline-2)", padding: "0 12px" };
 const delBtn: CSSProperties = { width: 26, height: 26, borderRadius: 8, border: "1px solid var(--error-border)", background: "rgba(255,84,112,0.10)", color: "var(--status-error-text)", fontSize: 12, lineHeight: 1 };
 const addBtn: CSSProperties = { height: 42, padding: "0 16px", borderRadius: 10, border: "1px solid var(--accent-border)", background: "rgba(124,92,255,0.12)", color: "var(--text-purple-2)", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap" };
+const uploadLabel: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", height: 46, borderRadius: 11, border: "1px dashed var(--accent-border)", background: "rgba(124,92,255,0.08)", color: "var(--text-purple)", fontSize: 13.5, fontWeight: 600, cursor: "pointer", marginTop: 4 };
 const memberRow: CSSProperties = { display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 11, background: "var(--surface-input)", border: "1px solid var(--hairline)" };
 const rolePill: CSSProperties = { padding: "5px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, color: "var(--text-purple-2)", background: "rgba(124,92,255,0.14)", border: "1px solid var(--accent-border)" };

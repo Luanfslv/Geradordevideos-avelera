@@ -1143,23 +1143,27 @@ def preprocess_video(materials: List[MaterialInfo], clip_duration=4):
     # 仅返回通过预处理校验的素材，避免低分辨率图片继续进入后续的视频合成流程。
     valid_materials = []
     local_videos_dir = utils.storage_dir("local_videos", create=True)
+    # Acelera: materiais "local" podem vir do upload do usuário (local_videos)
+    # OU do acervo padrão administrado pelo admin (library).
+    library_dir = utils.storage_dir("library", create=True)
 
     for material in materials:
         if not material.url:
             continue
 
-        try:
-            material_source_path = file_security.resolve_path_within_directory(
-                local_videos_dir, material.url
-            )
-        except ValueError as exc:
-            # local video_source 的素材路径来自 API 参数，必须限制在专用素材目录。
-            # 允许用户传文件名，也兼容历史返回的绝对路径，但不允许逃逸到系统
-            # 其他目录，避免任意文件读取或通过 MoviePy 探测本地敏感文件。
-            logger.warning(
-                f"skip unsafe local material: {material.url}, "
-                f"local_videos_dir: {local_videos_dir}, error: {str(exc)}"
-            )
+        # Resolve dentro de um dos diretórios permitidos, sem escapar para
+        # outros locais do sistema (evita leitura arbitrária de arquivos).
+        material_source_path = None
+        for base_dir in (local_videos_dir, library_dir):
+            try:
+                material_source_path = file_security.resolve_path_within_directory(
+                    base_dir, material.url
+                )
+                break
+            except ValueError:
+                continue
+        if material_source_path is None:
+            logger.warning(f"skip unsafe/unknown local material: {material.url}")
             continue
 
         ext = utils.parse_extension(material_source_path)
