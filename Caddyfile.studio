@@ -7,6 +7,16 @@
 acelera-studio.com {
 	encode gzip
 
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Content-Security-Policy "frame-ancestors 'self'"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
 	# API de geração e arquivos de vídeo vão pro backend FastAPI.
 	handle /api/* {
 		reverse_proxy api:8080
